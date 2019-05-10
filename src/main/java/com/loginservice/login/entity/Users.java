@@ -25,7 +25,7 @@ public class Users {
 
     private String password;
 
-    private String userType;
+    private String usertype;
 
     private String institution;
 
@@ -51,11 +51,11 @@ public class Users {
     }
 
     public String getUserType() {
-        return userType;
+        return usertype;
     }
 
     public void setUserType(String userType) {
-        this.userType = userType;
+        this.usertype = userType;
     }
 
     public String getInstitution() {
