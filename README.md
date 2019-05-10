@@ -39,11 +39,11 @@ POST
 addUser
 
 GET
-/id
+/user
 getUserIDByAuthToken
 
 GET
-/id/{id}
+/user/{id}
 getUserById
 
 
