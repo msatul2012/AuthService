@@ -8,6 +8,36 @@ public class NewUserOuput {
 
     private String lastname;
 
+    private String institution;
+
+    private String description;
+
+    private String userType;
+
+    public String getInstitution() {
+        return institution;
+    }
+
+    public void setInstitution(String institution) {
+        this.institution = institution;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    public String getUserType() {
+        return userType;
+    }
+
+    public void setUserType(String userType) {
+        this.userType = userType;
+    }
+
     public String getEmail() {
         return email;
     }

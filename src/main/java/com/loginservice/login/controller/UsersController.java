@@ -2,6 +2,8 @@ package com.loginservice.login.controller;
 
 import com.loginservice.login.dto.AuthenticationMessage;
 import com.loginservice.login.dto.NewUserInput;
+import com.loginservice.login.dto.NewUserOuput;
+import com.loginservice.login.dto.UserIdOutput;
 import com.loginservice.login.entity.Users;
 import com.loginservice.login.helper.*;
 import com.loginservice.login.service.UsersService;
@@ -172,7 +174,9 @@ public class UsersController {
             logger.info(email + " -> User Enabled. Sent the verification email");
             return ResponseEntity.status(HttpStatus.OK).body(Errors.ENABLED.getError());
         }
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Errors.NO_EXISTING_USER.getError());
+        ErrorHandler errorHandler = new ErrorHandler();
+        errorHandler.setMessage(Errors.NO_EXISTING_USER.getError());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorHandler);
     }
 
     /*
@@ -196,10 +200,56 @@ public class UsersController {
                 logger.info(email + " ->'s password changed");
                 return ResponseEntity.status(HttpStatus.OK).body(null);
             } else {
+                ErrorHandler errorHandler = new ErrorHandler();
+                errorHandler.setMessage(passwordValidation);
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(passwordValidation);
             }
         }
         return ResponseEntity.status(responseEntity.getStatusCode()).body(null);
+    }
+
+    /*
+        API to get user Id from auth-token
+     */
+    @RequestMapping(method = RequestMethod.GET)
+    @ResponseBody
+    public ResponseEntity getUserIDByAuthToken(@RequestHeader("auth-token") String authToken) {
+        RedisUtils redisUtils = new RedisUtils(redisHost,redisPort);
+        String email = redisUtils.getValue(authToken);
+        Users user = usersService.findUserByEmail(email);
+        if(user!=null) {
+            UserIdOutput userIdOutput = new UserIdOutput();
+            userIdOutput.setUserId(user.getId().toString());
+            return ResponseEntity.status(HttpStatus.OK).body(userIdOutput);
+        }
+        ErrorHandler errorHandler = new ErrorHandler();
+        errorHandler.setMessage(Errors.NO_EXISTING_USER.getError());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorHandler);
+    }
+
+    /*
+        API to get user details by user id
+     */
+    @RequestMapping(value = "/{id}", method = RequestMethod.GET)
+    @ResponseBody
+    public ResponseEntity getUserById(@PathVariable("id") String id) {
+
+        Users user = usersService.getUserById(UUID.fromString(id));
+
+        if(user!=null) {
+            NewUserOuput newUserOuput = new NewUserOuput();
+            newUserOuput.setEmail(user.getEmail());
+            newUserOuput.setFirstname(user.getFirstname());
+            newUserOuput.setLastname(user.getEmail());
+            newUserOuput.setDescription(user.getDescription());
+            newUserOuput.setUserType(user.getUserType());
+            newUserOuput.setInstitution(user.getInstitution());
+            return ResponseEntity.status(HttpStatus.OK).body(newUserOuput);
+        }
+
+        ErrorHandler errorHandler = new ErrorHandler();
+        errorHandler.setMessage(Errors.NO_EXISTING_USER.getError());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorHandler);
     }
 
     private ResponseEntity verifyToken (String token) {
