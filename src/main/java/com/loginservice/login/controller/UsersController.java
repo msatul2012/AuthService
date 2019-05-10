@@ -211,7 +211,7 @@ public class UsersController {
     /*
         API to get user Id from auth-token
      */
-    @RequestMapping(value = "/id", method = RequestMethod.GET)
+    @RequestMapping(value = "/user", method = RequestMethod.GET)
     @ResponseBody
     public ResponseEntity getUserIDByAuthToken(@RequestHeader("auth-token") String authToken) {
         RedisUtils redisUtils = new RedisUtils(redisHost,redisPort);
@@ -230,7 +230,7 @@ public class UsersController {
     /*
         API to get user details by user id
      */
-    @RequestMapping(value = "/id/{id}", method = RequestMethod.GET)
+    @RequestMapping(value = "/user/{id}", method = RequestMethod.GET)
     @ResponseBody
     public ResponseEntity getUserById(@PathVariable("id") String id) {
 
