@@ -81,6 +81,8 @@ public class UsersController {
         user.setPassword(newUserInput.getPassword());
         user.setFirstname(newUserInput.getFirstname());
         user.setLastname(newUserInput.getLastname());
+        user.setUserType(newUserInput.getUserType());
+        user.setDescription(newUserInput.getDescription());
         usersService.addOrUpdate(user);
 
         RedisUtils redisUtils = new RedisUtils(redisHost,redisPort);

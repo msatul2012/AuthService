@@ -20,6 +20,8 @@ public class Validator {
         String firstName = newUserInput.getFirstname();
         String lastName = newUserInput.getLastname();
         String password = newUserInput.getPassword();
+        String userType = newUserInput.getUserType();
+        String description = newUserInput.getDescription();
 
         if(email==null || email.equals("")) {
             errorHandler = new ErrorHandler();
@@ -36,6 +38,18 @@ public class Validator {
         if(lastName==null || lastName.equals("")) {
             errorHandler = new ErrorHandler();
             errorHandler.setMessage(Errors.LAST_NAME_EMPTY.getError());
+            return errorHandler;
+        }
+
+        if(userType==null || userType.equals("")) {
+            errorHandler = new ErrorHandler();
+            errorHandler.setMessage(Errors.USER_TYPE_NOT_DEFINED.getError());
+            return errorHandler;
+        }
+
+        if(description==null || description.equals("")) {
+            errorHandler = new ErrorHandler();
+            errorHandler.setMessage(Errors.DESCRIPTION.getError());
             return errorHandler;
         }
 

@@ -25,6 +25,12 @@ public class Users {
 
     private String password;
 
+    private String userType;
+
+    private String institution;
+
+    private String description;
+
     @Column(name="enabled",columnDefinition = "boolean default false")
     private boolean enabled;
 
@@ -42,6 +48,30 @@ public class Users {
 
     public void setLastname(String lastname) {
         this.lastname = lastname;
+    }
+
+    public String getUserType() {
+        return userType;
+    }
+
+    public void setUserType(String userType) {
+        this.userType = userType;
+    }
+
+    public String getInstitution() {
+        return institution;
+    }
+
+    public void setInstitution(String institution) {
+        this.institution = institution;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
     }
 
     public String getPassword() {

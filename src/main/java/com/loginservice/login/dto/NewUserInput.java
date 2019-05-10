@@ -10,6 +10,10 @@ public class NewUserInput {
 
     private String password;
 
+    private String userType;
+
+    private String description;
+
     public String getEmail() {
         return email;
     }
@@ -36,6 +40,22 @@ public class NewUserInput {
 
     public String getPassword() {
         return password;
+    }
+
+    public String getUserType() {
+        return userType;
+    }
+
+    public void setUserType(String userType) {
+        this.userType = userType;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
     }
 
     public void setPassword(String password) {
