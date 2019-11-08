@@ -3,10 +3,13 @@ package com.loginservice.login.controller;
 import com.loginservice.login.dto.AuthenticationMessage;
 import com.loginservice.login.dto.NewUserInput;
 import com.loginservice.login.dto.NewUserOuput;
+import com.loginservice.login.dto.UpdateInfo;
 import com.loginservice.login.dto.UserIdOutput;
 import com.loginservice.login.entity.Users;
 import com.loginservice.login.helper.*;
 import com.loginservice.login.service.UsersService;
+import com.sun.deploy.net.HttpResponse;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,6 +19,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.PostConstruct;
+import javax.servlet.http.HttpServletResponse;
+
 import java.util.UUID;
 
 /*
@@ -24,6 +29,7 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping
+@CrossOrigin(origins = "*")
 public class UsersController {
 
     private static final Logger logger = LogManager.getLogger(UsersController.class);
@@ -40,6 +46,7 @@ public class UsersController {
     private String confirmEndPoint;
     private String redisHost;
     private String redisPort;
+    private String uiUrl;
 
     @PostConstruct
     public void init() {
@@ -49,6 +56,7 @@ public class UsersController {
         confirmEndPoint = environment.getProperty("confirm-endpoint");
         redisHost = environment.getProperty("redis-host");
         redisPort = environment.getProperty("redis-port");
+        uiUrl = environment.getProperty("ui-endpoint");
     }
 
     /*
@@ -64,7 +72,7 @@ public class UsersController {
         if (existingUser!=null) {
             ErrorHandler errorHandler = new ErrorHandler();
             errorHandler.setMessage(Errors.EXISTING_USER.getError());
-            return ResponseEntity.status(HttpStatus.IM_USED).body(errorHandler);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorHandler);
         }
 
         logger.info("Validating User input for Registration");
@@ -81,6 +89,7 @@ public class UsersController {
         Users user = new Users();
         user.setEmail(email);
         user.setPassword(newUserInput.getPassword());
+        user.setInstitution(newUserInput.getInstitution());
         user.setFirstname(newUserInput.getFirstname());
         user.setLastname(newUserInput.getLastname());
         user.setUserType(newUserInput.getUserType());
@@ -89,11 +98,52 @@ public class UsersController {
 
         RedisUtils redisUtils = new RedisUtils(redisHost,redisPort);
         String confirmToken = generateAuthToken();
-        redisUtils.addUserToken(confirmToken, email);
+        redisUtils.addUserToken(confirmToken, email, 86400);
         logger.info("Generated Auth Token");
         buildBodyAndSendEmail (confirmToken, email);
         logger.info(email + " -> User Created. Sent the verification email");
         return ResponseEntity.status(HttpStatus.CREATED).body(Errors.CREATED.getError());
+    }
+
+    /*
+        API to register an user
+     */
+    @RequestMapping(value = "/update", method = RequestMethod.POST, headers = "Content-Type=application/json")
+    @ResponseBody
+    public ResponseEntity update(@RequestBody UpdateInfo updateInfo, @RequestHeader("token") String token) {
+
+        RedisUtils redisUtils = new RedisUtils(redisHost,redisPort);
+        if(!redisUtils.keyExists(token)) {
+            ErrorHandler errorHandler = new ErrorHandler();
+            errorHandler.setMessage(Errors.AUTH_TOKEN_INVALID.getError());
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(errorHandler);
+        }
+        String email = redisUtils.getValue(token);
+        Users user = usersService.findUserByEmail(email);
+        if (user==null) {
+            ErrorHandler errorHandler = new ErrorHandler();
+            errorHandler.setMessage(Errors.NO_EXISTING_USER.getError());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorHandler);
+        }
+        String description = updateInfo.getDescription();
+        if(description!=null && !description.equals(""))
+            user.setDescription(description);
+
+        String institution = updateInfo.getInstitution();
+        if(institution!=null && !institution.equals(""))
+            user.setInstitution(institution);
+
+        String firstName = updateInfo.getFirstname();
+        if(firstName!=null && !firstName.equals(""))
+            user.setFirstname(firstName);
+
+        String lastName = updateInfo.getLastname();
+        if(lastName!=null && !lastName.equals(""))
+            user.setLastname(lastName);
+
+        usersService.addOrUpdate(user);
+
+        return ResponseEntity.status(HttpStatus.OK).body(Errors.CREATED.getError());
     }
 
     /*
@@ -122,20 +172,24 @@ public class UsersController {
      */
     @RequestMapping(value = "/confirm", method = RequestMethod.GET)
     @ResponseBody
-    public ResponseEntity confirmEmail(@RequestParam("token") String confirmToken) {
+    public ResponseEntity confirmEmail(@RequestParam("token") String confirmToken, @RequestParam("email") String email, HttpServletResponse httpServletResponse) throws Exception{
         logger.info("Activating and confirming email");
         RedisUtils redisUtils = new RedisUtils(redisHost,redisPort);
-
         ResponseEntity responseEntity =  verifyToken (confirmToken);
         if(responseEntity.getStatusCode()==HttpStatus.OK) {
-            String email = redisUtils.getValue(confirmToken);
             Users user = usersService.findUserByEmail(email);
             if(user!=null) {
                 user.setEnabled(true);
                 usersService.addOrUpdate(user);
             }
+            httpServletResponse.sendRedirect(uiUrl+"Yes");
+            return ResponseEntity.status(responseEntity.getStatusCode()).body("EMAIL CONFIRMED. PLEASE LOGIN");
         }
-        return ResponseEntity.status(responseEntity.getStatusCode()).body(responseEntity.getBody());
+        httpServletResponse.sendRedirect(uiUrl+"No");
+        String newToken = generateAuthToken();
+        redisUtils.addUserToken(newToken, email, 86400);
+        buildBodyAndSendEmail (newToken, email);
+        return ResponseEntity.status(responseEntity.getStatusCode()).body("EMAIL NOT CONFIRMED, SENT THE REQUEST AGAIN");
     }
 
     /*
@@ -160,6 +214,22 @@ public class UsersController {
     }
 
     /*
+        API to logout
+     */
+    @RequestMapping(value = "/logout", method = RequestMethod.GET)
+    @ResponseBody
+    public ResponseEntity logout(@RequestHeader("auth-token") String authToken) {
+            RedisUtils redisUtils = new RedisUtils(redisHost,redisPort);
+            String email = "";
+            if(redisUtils.keyExists(authToken)) {
+                email = redisUtils.getValue(authToken);
+                redisUtils.delete(authToken);
+                redisUtils.delete(email);
+            }
+            return ResponseEntity.status(HttpStatus.OK).body(null);
+    }
+
+    /*
         API to enable user
      */
     @RequestMapping(value = "/enable", method = RequestMethod.PUT)
@@ -169,7 +239,7 @@ public class UsersController {
         if(user!=null) {
             RedisUtils redisUtils = new RedisUtils(redisHost, redisPort);
             String confirmToken = generateAuthToken();
-            redisUtils.addUserToken(confirmToken, email);
+            redisUtils.addUserToken(confirmToken, email, 86400);
             buildBodyAndSendEmail(confirmToken, email);
             logger.info(email + " -> User Enabled. Sent the verification email");
             return ResponseEntity.status(HttpStatus.OK).body(Errors.ENABLED.getError());
@@ -211,7 +281,7 @@ public class UsersController {
     /*
         API to get user Id from auth-token
      */
-    @RequestMapping(value = "/user", method = RequestMethod.GET)
+    @RequestMapping(value = "", method = RequestMethod.GET)
     @ResponseBody
     public ResponseEntity getUserIDByAuthToken(@RequestHeader("auth-token") String authToken) {
         RedisUtils redisUtils = new RedisUtils(redisHost,redisPort);
@@ -220,6 +290,7 @@ public class UsersController {
         if(user!=null) {
             UserIdOutput userIdOutput = new UserIdOutput();
             userIdOutput.setUserId(user.getId().toString());
+            userIdOutput.setEmail(email);
             return ResponseEntity.status(HttpStatus.OK).body(userIdOutput);
         }
         ErrorHandler errorHandler = new ErrorHandler();
@@ -230,7 +301,7 @@ public class UsersController {
     /*
         API to get user details by user id
      */
-    @RequestMapping(value = "/user/{id}", method = RequestMethod.GET)
+    @RequestMapping(value = "/{id}", method = RequestMethod.GET)
     @ResponseBody
     public ResponseEntity getUserById(@PathVariable("id") String id) {
 
@@ -240,7 +311,7 @@ public class UsersController {
             NewUserOuput newUserOuput = new NewUserOuput();
             newUserOuput.setEmail(user.getEmail());
             newUserOuput.setFirstname(user.getFirstname());
-            newUserOuput.setLastname(user.getEmail());
+            newUserOuput.setLastname(user.getLastname());
             newUserOuput.setDescription(user.getDescription());
             newUserOuput.setUserType(user.getUserType());
             newUserOuput.setInstitution(user.getInstitution());
@@ -310,7 +381,7 @@ public class UsersController {
         }
 
         if(!redisUtils.keyExists(email)) {
-            redisUtils.addUserToken(email,generateAuthToken());
+            redisUtils.addUserToken(email,generateAuthToken(), 3600);
         }
 
         return authMessageBuilder (email, redisUtils);
@@ -325,10 +396,9 @@ public class UsersController {
     }
 
     private void buildBodyAndSendEmail (String token, String email) {
-
         EmailConfirmation emailConfirmation = new EmailConfirmation();
         String subject = "PLEASE CONFIRM EMAIL -> " + email;
-        String body = "http://" + sentFromHost + confirmEndPoint + "?token=" + token;
+        String body = "http://" + sentFromHost + confirmEndPoint + "?token=" + token + "&email=" + email;
 
         emailConfirmation.sendConfirmation(email, fromEmail, fromPassword, body, subject);
     }

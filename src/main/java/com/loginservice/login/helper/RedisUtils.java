@@ -16,14 +16,14 @@ public class RedisUtils {
         jedis = new Jedis(redisHost, Integer.parseInt(redisPort));
     }
 
-    public void addUserToken(String email, String authToken) {
+    public void addUserToken(String email, String authToken, int seconds) {
         try {
             if (jedis != null) {
                 jedis.set(email, authToken);
                 jedis.set(authToken, email);
 
-                jedis.expire(email,120);
-                jedis.expire(authToken,120);
+                jedis.expire(email,seconds);
+                jedis.expire(authToken,seconds);
             }
         } catch (Exception e) {
             // TODO

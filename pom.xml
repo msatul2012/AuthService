@@ -14,7 +14,9 @@
     <name>login</name>
     <description>Demo project for Spring Boot</description>
 
+
     <properties>
+        <start-class>com.loginservice.login.LoginApplication</start-class>
         <java.version>1.8</java.version>
     </properties>
 
@@ -117,6 +119,9 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <mainClass>com.loginservice.login.LoginApplication</mainClass>
+                </configuration>
             </plugin>
         </plugins>
     </build>

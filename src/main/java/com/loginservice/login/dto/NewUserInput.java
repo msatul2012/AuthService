@@ -40,6 +40,22 @@ public class NewUserInput {
         this.lastname = lastname;
     }
 
+    public String getUsertype() {
+        return usertype;
+    }
+
+    public void setUsertype(String usertype) {
+        this.usertype = usertype;
+    }
+
+    public String getInstitution() {
+        return institution;
+    }
+
+    public void setInstitution(String institution) {
+        this.institution = institution;
+    }
+
     public String getPassword() {
         return password;
     }
