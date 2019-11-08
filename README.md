@@ -5,30 +5,46 @@ LOGIN SERVICE -
   4. EMAIL CONFIRMATION.
   5. DISABLE USER. 
   6. AUTH.
-  7. ENABLE USER. 
-  8. RESET PASSWORD - FORGOT PASSWORD - //TODO
+  7. ENABLE USER.
+  8. GET USER DETAILS BY ID
+  9. GET USERID BY AUTH TOKEN
+  10. RESET PASSWORD - FORGOT PASSWORD - //TODO
   
   GET
 /auth
 authenticateToken
+
 PUT
 /change_password
 changePassword
+
 GET
 /confirm
 confirmEmail
+
 PUT
 /disable
 disableUser
+
 PUT
 /enable
 enableUser
+
 GET
 /login
 login
+
 POST
 /register
 addUser
+
+GET
+/user
+getUserIDByAuthToken
+
+GET
+/user/{id}
+getUserById
 
 
 SWAGGER URL - http://localhost:8087/user/swagger-ui.html#/
